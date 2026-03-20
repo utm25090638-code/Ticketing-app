@@ -1,1 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Ticketing App PRO</title>
+<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
 
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, collection, addDoc, getDocs, query, where, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyA3glOW4isGprLT6yAJS716hn6eoflo4X0",
+  authDomain: "ticketing-app-3cc86.firebaseapp.com",
+  projectId: "ticketing-app-3cc86",
+  storageBucket: "ticketing-app-3cc86.firebasestorage.app",
+  messagingSenderId: "455309787800",
+  appId: "1:455309787800:web:57607a7345d2641510c6ed"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// GENERAR TICKET
+window.generarTicket = async function() {
+  const name = document.getElementById("name").value;
+  if (!name) return alert("Escribe tu nombre");
+
+  const ticketId = "TICKET-" + Date.now();
+
+  await addDoc(collection(db, "tickets"), {
+    nombre: name,
+    id: ticketId,
+    usado: false
+  });
+
+  document.getElementById("ticketInfo").innerText =
+    `Nombre: ${name} | ID: ${ticketId}`;
+
+  QRCode.toCanvas(document.getElementById("qr"), ticketId);
+}
+
+// VERIFICAR TICKET
+window.verificarTicket = async function() {
+  const id = document.getElementById("ticketInput").value;
+
+  const q = query(collection(db, "tickets"), where("id", "==", id));
+  const querySnapshot = await getDocs(q);
+
+  if (querySnapshot.empty) {
+    document.getElementById("resultado").innerText = "❌ Ticket inválido";
+    return;
+  }
+
+  const docRef = querySnapshot.docs[0];
+
+  if (docRef.data().usado) {
+    document.getElementById("resultado").innerText = "⚠️ Ticket ya usado";
+    return;
+  }
+
+  await updateDoc(doc(db, "tickets", docRef.id), {
+    usado: true
+  });
+
+  document.getElementById("resultado").innerText =
+    `✅ Acceso permitido: ${docRef.data().nombre}`;
+}
+</script>
+
+<style>
+body { font-family: Arial; text-align: center; background: #0f172a; color: white; }
+input, button { padding: 10px; margin: 5px; border-radius: 8px; border: none; }
+button { background: #22c55e; color: white; cursor: pointer; }
+.container { margin-top: 20px; }
+.card { background: #1e293b; padding: 15px; border-radius: 12px; margin-top: 15px; }
+</style>
+</head>
+
+<body>
+
+<h1>🎟️ Ticketing App PRO</h1>
+
+<div class="container">
+  <h3>Generar Ticket</h3>
+  <input type="text" id="name" placeholder="Tu nombre">
+  <button onclick="generarTicket()">Crear Ticket</button>
+
+  <div class="card">
+    <p id="ticketInfo"></p>
+    <canvas id="qr"></canvas>
+  </div>
+</div>
+
+<div class="container">
+  <h3>Verificar Ticket</h3>
+  <input type="text" id="ticketInput" placeholder="Ingresa ID del ticket">
+  <button onclick="verificarTicket()">Verificar</button>
+
+  <div class="card">
+    <p id="resultado"></p>
+  </div>
+</div>
+
+</body>
+</html>
